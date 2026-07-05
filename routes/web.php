@@ -31,7 +31,9 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware('auth')->group(function () {
     Route::get('/conectar', [WhatsAppController::class, 'conectar'])->name('conectar');
 
-    Route::resource('planes', PlanController::class)->except('show');
+    // English inflection would singularize "planes" to "plane" (as in aircraft); force "plan" so
+    // route-model-binding actually matches the {plan} parameter used by PlanController.
+    Route::resource('planes', PlanController::class)->parameters(['planes' => 'plan'])->except('show');
     Route::resource('pedidos', PedidoController::class)->except('show');
     Route::resource('clientes', ClienteController::class)->except('show');
     Route::resource('contactos', BotContactController::class)->except(['show', 'create', 'store']);
