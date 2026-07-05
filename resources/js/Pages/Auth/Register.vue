@@ -116,7 +116,7 @@ const submit = () => {
             ¿Ya tienes una cuenta?
             <Link
                 :href="route('login')"
-                class="font-semibold text-[#7c3aed] hover:text-[#c026d3]"
+                class="font-semibold text-[#dc2626] hover:text-[#f97316]"
             >
                 Iniciar sesión
             </Link>

@@ -13,13 +13,13 @@ const name = computed(() => page.props.name || 'Overcloud');
     >
         <!-- Ambient brand gradient glows -->
         <div
-            class="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-[#7c3aed] opacity-30 blur-3xl"
+            class="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-[#dc2626] opacity-30 blur-3xl"
         ></div>
         <div
-            class="pointer-events-none absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-[#c026d3] opacity-30 blur-3xl"
+            class="pointer-events-none absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-[#f97316] opacity-30 blur-3xl"
         ></div>
         <div
-            class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.18),_transparent_55%)]"
+            class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(220,38,38,0.18),_transparent_55%)]"
         ></div>
 
         <div class="relative z-10 w-full max-w-md">
@@ -32,7 +32,7 @@ const name = computed(() => page.props.name || 'Overcloud');
 
             <!-- Card -->
             <div
-                class="w-full rounded-2xl border border-white/10 bg-white/95 p-8 shadow-2xl shadow-purple-950/40 backdrop-blur-sm sm:p-10"
+                class="w-full rounded-2xl border border-white/10 bg-white/95 p-8 shadow-2xl shadow-red-950/40 backdrop-blur-sm sm:p-10"
             >
                 <slot />
             </div>

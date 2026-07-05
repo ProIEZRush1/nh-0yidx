@@ -1,11 +1,15 @@
 <script setup>
+import { computed } from 'vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const businessName = computed(() => page.props.name ?? 'tu negocio');
 
 defineProps({
     canResetPassword: {
@@ -34,9 +38,9 @@ const submit = () => {
         <Head title="Iniciar sesión" />
 
         <div class="mb-6 text-center">
-            <h1 class="text-2xl font-bold text-slate-900">Bienvenido de nuevo</h1>
+            <h1 class="text-2xl font-bold text-slate-900">Bienvenido a {{ businessName }}</h1>
             <p class="mt-1 text-sm text-slate-500">
-                Inicia sesión para acceder a tu panel
+                Inicia sesión para administrar tu sistema
             </p>
         </div>
 
@@ -90,7 +94,7 @@ const submit = () => {
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="rounded-md text-sm font-medium text-[#7c3aed] underline-offset-2 hover:text-[#c026d3] hover:underline focus:outline-none focus:ring-2 focus:ring-fuchsia-400 focus:ring-offset-2"
+                    class="rounded-md text-sm font-medium text-[#dc2626] underline-offset-2 hover:text-[#f97316] hover:underline focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
                 >
                     Olvidaste tu contraseña
                 </Link>
@@ -109,7 +113,7 @@ const submit = () => {
             ¿No tienes una cuenta?
             <Link
                 :href="route('register')"
-                class="font-semibold text-[#7c3aed] hover:text-[#c026d3]"
+                class="font-semibold text-[#dc2626] hover:text-[#f97316]"
             >
                 Crear cuenta
             </Link>

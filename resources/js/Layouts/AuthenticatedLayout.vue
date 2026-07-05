@@ -1,13 +1,26 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link, usePage } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
 
 const showingNavigationDropdown = ref(false);
 
 const page = usePage();
+
+watch(
+    () => page.props.flash,
+    (flash) => {
+        if (flash?.success) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: flash.success, showConfirmButton: false, timer: 3000, timerProgressBar: true });
+        } else if (flash?.error) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: flash.error, showConfirmButton: false, timer: 4000, timerProgressBar: true });
+        }
+    },
+    { immediate: true, deep: true },
+);
 
 const businessName = computed(() => page.props.name ?? 'Mi Negocio');
 
@@ -33,6 +46,17 @@ const userInitials = computed(() => {
     }
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 });
+
+const trialLocked = computed(() => page.props.trialLocked ?? false);
+
+const navItems = [
+    { name: 'dashboard', label: 'Inicio', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { name: 'planes.index', label: 'Planes', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { name: 'pedidos.index', label: 'Inscripciones', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+    { name: 'clientes.index', label: 'Miembros', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4' },
+    { name: 'contactos.index', label: 'Conversaciones', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
+    { name: 'conectar', label: 'Conectar WhatsApp', icon: 'M3 20l1.3-3.9A8 8 0 1 1 7.9 19.7L3 20z' },
+];
 </script>
 
 <template>
@@ -48,12 +72,12 @@ const userInitials = computed(() => {
                     class="flex items-center gap-3"
                 >
                     <span
-                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#c026d3] text-sm font-bold text-white shadow-lg shadow-fuchsia-500/20"
+                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#dc2626] to-[#f97316] text-sm font-bold text-white shadow-lg shadow-orange-500/20"
                     >
                         {{ brandInitials }}
                     </span>
                     <span
-                        class="bg-gradient-to-r from-[#7c3aed] to-[#c026d3] bg-clip-text text-lg font-extrabold leading-tight tracking-tight text-transparent"
+                        class="bg-gradient-to-r from-[#dc2626] to-[#f97316] bg-clip-text text-lg font-extrabold leading-tight tracking-tight text-transparent"
                     >
                         {{ businessName }}
                     </span>
@@ -63,11 +87,13 @@ const userInitials = computed(() => {
             <!-- Nav -->
             <nav class="flex-1 space-y-1 px-4 py-4">
                 <Link
-                    :href="route('dashboard')"
+                    v-for="item in navItems"
+                    :key="item.name"
+                    :href="route(item.name)"
                     :class="[
                         'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition',
-                        route().current('dashboard')
-                            ? 'bg-gradient-to-r from-[#7c3aed] to-[#c026d3] text-white shadow-md shadow-fuchsia-500/20'
+                        route().current(item.name)
+                            ? 'bg-gradient-to-r from-[#dc2626] to-[#f97316] text-white shadow-md shadow-orange-500/20'
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                     ]"
                 >
@@ -81,36 +107,11 @@ const userInitials = computed(() => {
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            :d="item.icon"
                         />
                     </svg>
-                    Inicio
+                    {{ item.label }}
                 </Link>
-                <Link
-                    :href="route('conectar')"
-                    :class="[
-                        'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition',
-                        route().current('conectar')
-                            ? 'bg-gradient-to-r from-[#7c3aed] to-[#c026d3] text-white shadow-md shadow-fuchsia-500/20'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-                    ]"
-                >
-                    <svg
-                        class="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M3 20l1.3-3.9A8 8 0 1 1 7.9 19.7L3 20z"
-                        />
-                    </svg>
-                    Conectar WhatsApp
-                </Link>
-                <!-- El menú se amplía por cliente según los módulos instalados. -->
             </nav>
 
             <!-- Footer credit -->
@@ -153,12 +154,12 @@ const userInitials = computed(() => {
                     </button>
                     <Link :href="route('dashboard')" class="flex items-center gap-2">
                         <span
-                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#c026d3] text-xs font-bold text-white"
+                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#dc2626] to-[#f97316] text-xs font-bold text-white"
                         >
                             {{ brandInitials }}
                         </span>
                         <span
-                            class="bg-gradient-to-r from-[#7c3aed] to-[#c026d3] bg-clip-text text-base font-extrabold text-transparent"
+                            class="bg-gradient-to-r from-[#dc2626] to-[#f97316] bg-clip-text text-base font-extrabold text-transparent"
                         >
                             {{ businessName }}
                         </span>
@@ -179,7 +180,7 @@ const userInitials = computed(() => {
                                 class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 focus:outline-none"
                             >
                                 <span
-                                    class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7c3aed] to-[#c026d3] text-xs font-bold text-white"
+                                    class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#dc2626] to-[#f97316] text-xs font-bold text-white"
                                 >
                                     {{ userInitials }}
                                 </span>
@@ -222,16 +223,12 @@ const userInitials = computed(() => {
             >
                 <div class="space-y-1 px-4 py-3">
                     <ResponsiveNavLink
-                        :href="route('dashboard')"
-                        :active="route().current('dashboard')"
+                        v-for="item in navItems"
+                        :key="item.name"
+                        :href="route(item.name)"
+                        :active="route().current(item.name)"
                     >
-                        Inicio
-                    </ResponsiveNavLink>
-                    <ResponsiveNavLink
-                        :href="route('conectar')"
-                        :active="route().current('conectar')"
-                    >
-                        Conectar WhatsApp
+                        {{ item.label }}
                     </ResponsiveNavLink>
                 </div>
                 <div class="border-t border-slate-200 px-4 py-4">
@@ -251,6 +248,14 @@ const userInitials = computed(() => {
             <!-- Mobile page heading -->
             <div v-if="$slots.header" class="border-b border-slate-200 bg-white px-4 py-5 sm:px-6 lg:hidden">
                 <slot name="header" />
+            </div>
+
+            <!-- Trial banner -->
+            <div
+                v-if="trialLocked"
+                class="flex items-center justify-center gap-2 bg-gradient-to-r from-[#dc2626] to-[#f97316] px-4 py-2 text-center text-xs font-semibold text-white sm:text-sm"
+            >
+                🔒 Versión de prueba — activa todo con tu anticipo.
             </div>
 
             <!-- Page content -->

@@ -26,7 +26,7 @@ const initial = computed(() => name.value.trim().charAt(0).toUpperCase() || 'O')
     <div class="flex items-center gap-3">
         <span
             :class="markSize"
-            class="relative inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#c026d3] shadow-lg shadow-fuchsia-500/30"
+            class="relative inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#dc2626] to-[#f97316] shadow-lg shadow-orange-500/30"
         >
             <svg
                 viewBox="0 0 40 40"
@@ -42,7 +42,7 @@ const initial = computed(() => name.value.trim().charAt(0).toUpperCase() || 'O')
         <span
             v-if="showText"
             :class="textSize"
-            class="bg-gradient-to-r from-[#7c3aed] to-[#c026d3] bg-clip-text font-extrabold tracking-tight text-transparent"
+            class="bg-gradient-to-r from-[#dc2626] to-[#f97316] bg-clip-text font-extrabold tracking-tight text-transparent"
         >
             {{ name }}
         </span>

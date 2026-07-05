@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\BotContactController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PedidoController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WhatsAppController;
 use Illuminate\Foundation\Application;
@@ -19,12 +24,17 @@ Route::get('/health', function () {
     }
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/conectar', [WhatsAppController::class, 'conectar'])->name('conectar');
+
+    Route::resource('planes', PlanController::class)->except('show');
+    Route::resource('pedidos', PedidoController::class)->except('show');
+    Route::resource('clientes', ClienteController::class)->except('show');
+    Route::resource('contactos', BotContactController::class)->except(['show', 'create', 'store']);
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

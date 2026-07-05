@@ -10,14 +10,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * Deterministic, DB-driven Spanish WhatsApp SALES bot for the client's own phone line.
+ * Deterministic, DB-driven Spanish WhatsApp SALES bot for NH's gym membership line.
  *
  * It is a finite-state machine keyed on BotContact->step:
  *   new → choosing → confirming → done   (+ the cross-cutting "human" handoff state)
  *
- * Unlike the panel's BotResponder (the STYLE reference for tone, `isYes`, `wantsHuman`
- * and single-asterisk WhatsApp bold) this engine calls NO AI/LLM — every reply is fixed
- * copy, kept in clearly-labeled private methods so it is trivially editable per client.
+ * Every reply is fixed copy, kept in clearly-labeled private methods so it is trivially
+ * editable per client. The final sale confirmation is gated by trial_locked() (see
+ * config/trial.php) so a trial deploy captures leads without closing real sales.
  */
 class BotEngine
 {
@@ -125,14 +125,28 @@ class BotEngine
     {
         if ($this->isYes($text)) {
             $pedido = $this->pendingPedido($contact);
-            if ($pedido) {
-                $pedido->update(['estado' => 'confirmado']);
-            }
 
             Cliente::updateOrCreate(
                 ['telefono' => $from],
                 ['nombre' => $fromName ?: $contact->name],
             );
+
+            // Confirming a sign-up is the money-making step: while the trial is locked, capture the
+            // lead (allowed) but don't mark the sale as officially confirmed/closed.
+            if (trial_locked()) {
+                if ($pedido) {
+                    $pedido->update(['estado' => 'pendiente_pago']);
+                }
+
+                $this->setStep($contact, self::STEP_DONE);
+                $this->reply($from, $this->copyConfirmedLocked($pedido?->plan));
+
+                return;
+            }
+
+            if ($pedido) {
+                $pedido->update(['estado' => 'confirmado']);
+            }
 
             $this->setStep($contact, self::STEP_DONE);
             $this->reply($from, $this->copyConfirmed());
@@ -206,8 +220,8 @@ class BotEngine
     {
         $greeting = $name ? "¡Hola, {$name}! 👋" : '¡Hola! 👋';
 
-        return $greeting." Gracias por escribir a *".config('app.name')."* 🙌\n\n"
-            ."Estos son nuestros planes:\n\n";
+        return $greeting." Bienvenido a *".config('app.name')."* 💪, tu gimnasio de confianza.\n\n"
+            ."Estas son nuestras membresías:\n\n";
     }
 
     private function planList(Collection $plans): string
@@ -226,50 +240,59 @@ class BotEngine
 
     private function copyAskChoice(): string
     {
-        return "\n\n¿Cuál te interesa? Respóndeme con el *número* o el *nombre* del plan. 🙂";
+        return "\n\n¿Cuál te late más? Respóndeme con el *número* o el *nombre* de la membresía. 🙂";
     }
 
     private function copyNoMatch(): string
     {
-        return "No identifiqué ese plan. 🤔 Estos son los disponibles:\n\n";
+        return "No identifiqué esa membresía. 🤔 Estas son las disponibles:\n\n";
     }
 
     private function copyConfirmPrompt(Plan $plan): string
     {
-        return '¡Excelente elección! 🙌 Elegiste *'.$plan->nombre.'* ('.$this->formatPrice($plan->precio).").\n\n"
-            .'¿Confirmas tu pedido? Responde *sí* para confirmar o *no* para elegir otro plan.';
+        return '¡Buena elección! 💪 Elegiste *'.$plan->nombre.'* ('.$this->formatPrice($plan->precio).").\n\n"
+            .'¿Confirmas tu inscripción? Responde *sí* para reservar tu lugar o *no* para elegir otra membresía.';
     }
 
     private function copyConfirmRetry(): string
     {
-        return 'Para continuar, respóndeme *sí* para confirmar tu pedido o *no* para elegir otro plan. 🙂';
+        return 'Para continuar, respóndeme *sí* para confirmar tu inscripción o *no* para elegir otra membresía. 🙂';
     }
 
     private function copyChangedMind(): string
     {
-        return "Sin problema. 🙌 Aquí están los planes de nuevo:\n\n";
+        return "Sin problema. 💪 Aquí están las membresías de nuevo:\n\n";
     }
 
     private function copyConfirmed(): string
     {
-        return "¡Listo! ✅ Registramos tu pedido. Un asesor te contactará en breve para los siguientes pasos. 🙌\n\n"
+        return "¡Listo! ✅ Registramos tu inscripción. Un asesor te contactará en breve para completar tu pago y darte la bienvenida al equipo. 💪\n\n"
+            ."Si quieres empezar de nuevo, escribe *menu*.";
+    }
+
+    private function copyConfirmedLocked(?Plan $plan): string
+    {
+        $membresia = $plan ? " a *{$plan->nombre}*" : '';
+
+        return "¡Genial! 💪 Registramos tu inscripción{$membresia}.\n\n"
+            .'🔒 '.trial_locked_message()."\n\n"
             ."Si quieres empezar de nuevo, escribe *menu*.";
     }
 
     private function copyAlreadyDone(): string
     {
-        return "Ya registramos tu pedido ✅ y un asesor te contactará pronto. 🙌\n\n"
+        return "Ya registramos tu inscripción ✅ y un asesor te contactará pronto. 💪\n\n"
             ."Si quieres empezar de nuevo, escribe *menu*.";
     }
 
     private function copyNoPlans(): string
     {
-        return 'Gracias por escribir 🙌 En un momento un asesor te atiende personalmente.';
+        return 'Gracias por escribir 💪 En un momento un asesor te atiende personalmente.';
     }
 
     private function copyHandoff(): string
     {
-        return '¡Claro que sí! 🙌 Te paso con uno de nuestros asesores para que te atienda personalmente. '
+        return '¡Claro que sí! 💪 Te paso con uno de nuestros coaches para que te atienda personalmente. '
             .'En breve te contactan. ¡Quedo al pendiente! 😊';
     }
 
@@ -322,10 +345,10 @@ class BotEngine
         $contact->save();
     }
 
-    /** Format a price stored in cents as a Spanish-friendly amount. */
+    /** Format a price stored in cents as a Spanish-friendly monthly amount. */
     private function formatPrice(int $cents): string
     {
-        return '$'.number_format($cents / 100, 0, '.', ',').' MXN';
+        return '$'.number_format($cents / 100, 0, '.', ',').' MXN/mes';
     }
 
     /** Every outbound reply goes through the gateway. */

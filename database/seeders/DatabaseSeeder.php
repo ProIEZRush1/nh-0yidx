@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\BotContact;
+use App\Models\Cliente;
+use App\Models\Pedido;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -23,14 +26,20 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Eduardo', 'password' => 'Eduardo2006!', 'email_verified_at' => now()],
         );
 
-        // Example plans (cents) so the sales bot always has something to show in a demo.
-        $plans = [
-            ['nombre' => 'Básico', 'precio' => 99900, 'descripcion' => 'Ideal para empezar: lo esencial para tu negocio.', 'orden' => 1],
-            ['nombre' => 'Profesional', 'precio' => 199900, 'descripcion' => 'El más popular: más funciones y soporte prioritario.', 'orden' => 2],
-            ['nombre' => 'Premium', 'precio' => 349900, 'descripcion' => 'Todo incluido: máximo alcance y atención dedicada.', 'orden' => 3],
+        // NH's own admin account for the panel.
+        User::updateOrCreate(
+            ['email' => 'nh@overcloud.us'],
+            ['name' => 'NH', 'password' => 'XViSNDnR9GVZ', 'email_verified_at' => now()],
+        );
+
+        // Membership tiers (cents) so the sales bot always has something to show in a demo.
+        $planes = [
+            ['nombre' => 'Básico', 'precio' => 99900, 'descripcion' => 'Acceso a piso de pesas y cardio en horario regular.', 'orden' => 1],
+            ['nombre' => 'Profesional', 'precio' => 199900, 'descripcion' => 'Todo lo de Básico + clases grupales ilimitadas y casillero.', 'orden' => 2],
+            ['nombre' => 'Premium', 'precio' => 349900, 'descripcion' => 'Acceso total + 4 sesiones de entrenador personal al mes.', 'orden' => 3],
         ];
 
-        foreach ($plans as $plan) {
+        foreach ($planes as $plan) {
             Plan::firstOrCreate(
                 ['nombre' => $plan['nombre']],
                 [
@@ -41,5 +50,46 @@ class DatabaseSeeder extends Seeder
                 ],
             );
         }
+
+        // Demo members and inscripciones so the panel doesn't look empty out of the box.
+        $miembros = [
+            ['nombre' => 'Ana Torres', 'telefono' => '5215500000001'],
+            ['nombre' => 'Luis Herrera', 'telefono' => '5215500000002'],
+            ['nombre' => 'Marcela Gómez', 'telefono' => '5215500000003'],
+        ];
+
+        foreach ($miembros as $miembro) {
+            Cliente::firstOrCreate(['telefono' => $miembro['telefono']], ['nombre' => $miembro['nombre']]);
+        }
+
+        $basico = Plan::where('nombre', 'Básico')->first();
+        $profesional = Plan::where('nombre', 'Profesional')->first();
+        $premium = Plan::where('nombre', 'Premium')->first();
+
+        $contactoAna = BotContact::firstOrCreate(
+            ['phone' => '5215500000001'],
+            ['name' => 'Ana Torres', 'step' => 'done'],
+        );
+        $contactoLuis = BotContact::firstOrCreate(
+            ['phone' => '5215500000002'],
+            ['name' => 'Luis Herrera', 'step' => 'done'],
+        );
+        $contactoDavid = BotContact::firstOrCreate(
+            ['phone' => '5215500000004'],
+            ['name' => 'David Ruiz', 'step' => 'confirming'],
+        );
+
+        Pedido::firstOrCreate(
+            ['telefono' => '5215500000001', 'plan_id' => $profesional?->id],
+            ['bot_contact_id' => $contactoAna->id, 'cliente' => 'Ana Torres', 'estado' => 'confirmado'],
+        );
+        Pedido::firstOrCreate(
+            ['telefono' => '5215500000002', 'plan_id' => $premium?->id],
+            ['bot_contact_id' => $contactoLuis->id, 'cliente' => 'Luis Herrera', 'estado' => 'confirmado'],
+        );
+        Pedido::firstOrCreate(
+            ['telefono' => '5215500000004', 'plan_id' => $basico?->id],
+            ['bot_contact_id' => $contactoDavid->id, 'cliente' => 'David Ruiz', 'estado' => 'nuevo'],
+        );
     }
 }
