@@ -7,6 +7,15 @@ cd /app || exit 1
 # 1. Ensure a .env exists.
 [ -f .env ] || cp .env.production .env
 
+# 1a. Laravel's LoadEnvironmentVariables bootstrapper checks the REAL process APP_ENV (which
+#     Coolify injects as "production") BEFORE reading any dotenv file: if a `.env.production`
+#     sits next to `.env`, it loads `.env.production` INSTEAD OF `.env` — unconditionally, for
+#     EVERY artisan call (migrate, config:cache, serve). That file ships with an empty APP_KEY
+#     and DB_CONNECTION=sqlite (no real Postgres creds), so leaving it in place silently discards
+#     every fix this script makes to `.env` below and reproduces the exact 500 this script exists
+#     to prevent. Remove it now so `.env` (the one we actually patch) is what gets loaded.
+rm -f .env.production
+
 # 1b. Sync the injected runtime env (Postgres, URLs, name) INTO .env. `php artisan serve` runs under a
 #     php.ini whose variables_order may exclude 'E', so $_ENV is empty and Dotenv falls back to the
 #     .env defaults (DB_CONNECTION=sqlite) — making WEB requests hit an empty sqlite while the CLI uses
