@@ -22,7 +22,7 @@ RUN printf 'display_errors=Off\nlog_errors=On\nvariables_order=EGPCS\n' > /usr/l
 WORKDIR /app
 COPY . /app
 
-RUN cp .env.production .env \
+RUN cp .env.production.template .env \
     && composer install --no-dev --optimize-autoloader --no-interaction --no-progress --no-scripts \
     && php artisan package:discover --ansi \
     && cd gateway && npm ci --omit=dev && cd /app \

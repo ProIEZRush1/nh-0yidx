@@ -4,23 +4,28 @@
 # liveness is tied only to Laravel on :8080; the Node gateway is a detached best-effort child.
 cd /app || exit 1
 
-# 1. Ensure a .env exists.
-[ -f .env ] || cp .env.production .env
-
-# 1a. Laravel's LoadEnvironmentVariables bootstrapper checks the REAL process APP_ENV (which
-#     Coolify injects as "production") BEFORE reading any dotenv file: if a `.env.production`
-#     sits next to `.env`, it loads `.env.production` INSTEAD OF `.env` — unconditionally, for
-#     EVERY artisan call (migrate, config:cache, serve). That file ships with an empty APP_KEY
-#     and DB_CONNECTION=sqlite (no real Postgres creds), so leaving it in place silently discards
-#     every fix this script makes to `.env` below and reproduces the exact 500 this script exists
-#     to prevent. Remove it now so `.env` (the one we actually patch) is what gets loaded.
+# 1. Ensure a .env exists. The committed template is named `.env.production.template` (NOT
+#    `.env.production`) on purpose: Laravel's LoadEnvironmentVariables bootstrapper checks the
+#    REAL process APP_ENV (which Coolify/this harness injects as "production") BEFORE reading
+#    any dotenv file, and would silently load a file literally named `.env.production` INSTEAD OF
+#    `.env` for EVERY artisan call (migrate, config:cache, serve, and any ad-hoc `php artisan
+#    serve` run outside this script). That file ships with an empty APP_KEY, so being loaded by
+#    mistake reproduces the exact 500 (MissingAppKeyException) this script exists to prevent.
+#    Naming the template with a non-magic suffix means Laravel can never mistake it for a real
+#    per-environment dotenv file, regardless of ambient APP_ENV — no cleanup step required.
+[ -f .env ] || cp .env.production.template .env
 rm -f .env.production
 
-# 1b. Sync the injected runtime env (Postgres, URLs, name) INTO .env. `php artisan serve` runs under a
+# 1b. Sync the injected runtime env (Postgres, URLs) INTO .env. `php artisan serve` runs under a
 #     php.ini whose variables_order may exclude 'E', so $_ENV is empty and Dotenv falls back to the
 #     .env defaults (DB_CONNECTION=sqlite) — making WEB requests hit an empty sqlite while the CLI uses
 #     the real Postgres. Writing the real values into .env makes both agree.
-for V in DB_CONNECTION DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD APP_URL ASSET_URL APP_NAME APP_ENV; do
+#     APP_NAME is intentionally EXCLUDED from this sync: the platform injects a generic ambient
+#     APP_NAME (e.g. the Overcloud platform name) into every container regardless of client, and
+#     syncing it here would permanently overwrite this client's committed brand name in .env.
+#     The client's APP_NAME in .env is the single source of truth for branding — step 1c below
+#     re-asserts it into the process env so it also wins over the ambient variable at runtime.
+for V in DB_CONNECTION DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD APP_URL ASSET_URL APP_ENV; do
     eval "VAL=\${$V}"
     [ -n "$VAL" ] || continue
     if grep -q "^$V=" .env; then
@@ -28,6 +33,13 @@ for V in DB_CONNECTION DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD APP_U
     fi
     printf '%s=%s\n' "$V" "$VAL" >> .env
 done
+
+# 1c. Re-assert this client's committed APP_NAME over any ambient platform-level APP_NAME env var.
+#     PHP's getenv()/$_ENV always wins over a .env file value (Dotenv never overwrites an existing
+#     variable), so an ambient APP_NAME set on the container would silently override our branding
+#     even though .env correctly says the client name — export it explicitly so it takes priority.
+APP_NAME="$(grep '^APP_NAME=' .env | head -1 | cut -d '=' -f2-)"
+export APP_NAME
 
 # 2. Ensure a REAL base64 APP_KEY lives in .env (an empty APP_KEY makes config:cache bake app.key=''
 #    → 500 on every authenticated route). Try artisan first; if it didn't persist one (it has silently
